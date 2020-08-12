@@ -1,0 +1,50 @@
+----------------- Options ---------------
+             aspect_ratio: 1.0                           
+                batchSize: 2                             
+          checkpoints_dir: ./checkpoints                 
+                 dataroot:                               
+             dataset_mode: aligned                       
+              display_env: main                          
+               display_id: 1                             
+             display_port: 8097                          
+           display_server: http://localhost              
+          display_winsize: 256                           
+                 fineSize: 512                           
+                  gpu_ids: 0                             
+                 how_many: inf                           
+                init_gain: 0.02                          
+                init_type: kaiming                       
+             input_folder: F:\project-test\faces         	[default: None]
+                 input_nc: 3                             
+                  isTrain: False                         	[default: None]
+                  is_real: 0                             
+                 loadSize: 512                           
+         max_dataset_size: inf                           
+                    model: test                          
+             model_suffix:                               
+                 nThreads: 8                             
+                     name: facefh_dictionary             
+                      ngf: 64                            
+               no_dropout: False                         
+                  no_flip: False                         
+                     norm: instance                      
+                    ntest: inf                           
+            output_folder: F:\project-test\dfdnet-test   	[default: None]
+                output_nc: 3                             
+                       p1:                               
+                       p2:                               
+                       p3:                               
+                       p4: 0                             
+                       p5:                               
+                       p6:                               
+                 partroot: datasets/GRMouthVGG2/MergeGRVGG2WebFace/
+                    phase:                               
+           resize_or_crop: degradation                   
+              results_dir: ./results/                    
+           serial_batches: False                         
+                   suffix:                               
+                  verbose: False                         
+          which_direction: BtoA                          
+              which_epoch: latest                        
+         which_model_netG: encoderVggDecoderResNet       
+----------------- End -------------------
