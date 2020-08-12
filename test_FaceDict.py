@@ -29,17 +29,6 @@ def get_part_location(dfl_image, image):
         height_scale = 512.0 / height
 
         Landmarks = Landmarks * np.array([width_scale, height_scale])
-    # if not os.path.exists(os.path.join(partpath,imgname+'.txt')):
-    #     print(os.path.join(partpath,imgname+'.txt'))
-    #     print('no landmark file')
-    #     return 0
-
-    # with open(os.path.join(partpath,imgname+'.txt'),'r') as f:
-    #     for line in f:
-    #         tmp = [np.float(i) for i in line.split(' ') if i != '\n']
-    #         Landmarks.append(tmp)
-    
-    # Landmarks = np.array(Landmarks) 
 
     Map_LE = list(np.hstack((range(17,22), range(36,42))))
     Map_RE = list(np.hstack((range(22,27), range(42,48))))
@@ -109,7 +98,6 @@ if __name__ == '__main__':
     IsReal = 0
     opt.gpu_ids = [0]
     TestImgPath = opt.input_folder #% test image path
-    # LandmarkPath = './TestData/RealVgg/Landmarks' #test landmark path
     opt.results_dir = opt.output_folder #save path
 
     #####################################
@@ -123,16 +111,12 @@ if __name__ == '__main__':
     # test
     ImgNames = os.listdir(TestImgPath)
     ImgNames.sort()
-    # total = 0
 
     for i, ImgName in enumerate(tqdm(ImgNames)):
-        # print((i,ImgName))
-        # if total >= 50:
-        #     break
         data = obtain_inputs(TestImgPath, ImgName, 'real')
         if data == 0:
+            print ('Skipping ' + ImgName + ' data not found');
             continue
-        # total = total + 1
         model.set_input(data)
         model.test()
         visuals = model.get_current_visuals()
