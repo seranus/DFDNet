@@ -113,6 +113,7 @@ if __name__ == '__main__':
     ImgNames.sort()
 
     for i, ImgName in enumerate(tqdm(ImgNames)):
+        torch.cuda.empty_cache()
         data = obtain_inputs(TestImgPath, ImgName, 'real')
         if data == 0:
             print ('Skipping ' + ImgName + ' data not found');
