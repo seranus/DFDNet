@@ -9,7 +9,6 @@ import torchvision.transforms as transforms
 import torch
 import random
 import cv2
-<<<<<<< HEAD
 import argparse
 from tqdm import tqdm
 from util import html
