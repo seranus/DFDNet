@@ -135,9 +135,6 @@ def obtain_inputs(img, landmarks):
     C = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(C) #
     return {'A':A.unsqueeze(0), 'C':C.unsqueeze(0), 'A_paths': A_paths,'Part_locations': Part_locations}
     
-def 
-
-
 if __name__ == '__main__':  
     opt = TestOptions().parse()
     opt.nThreads = 1   # test code only supports nThreads = 1
