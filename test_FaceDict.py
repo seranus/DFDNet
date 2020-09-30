@@ -78,12 +78,12 @@ def AddUpSample(img):
 
 # returns numpy image
 def get_image_from_tensor(visuals):
-    im_data = visuals['real_A']
+    im_data = visuals['fake_A']
     im = util.tensor2im(im_data)
     return im
 
 def landmark_68_to_5(landmarks):
-    lan_5 = np.array(landmarks[33], landmarks[36], landmarks[39], landmarks[42], landmarks[45])
+    lan_5 = np.array([landmarks[33], landmarks[36], landmarks[39], landmarks[42], landmarks[45]])
     return lan_5
 
 def get_part_location(landmarks, image):
@@ -158,6 +158,9 @@ if __name__ == '__main__':
     ImgNames = os.listdir(TestImgPath)
     ImgNames.sort()
 
+    reference = np.load('./packages/FFHQ_template.npy') / 2
+    out_size = (512, 512) 
+
     for i, ImgName in enumerate(tqdm(ImgNames)):
         torch.cuda.empty_cache()
         data_input = input('%REQFILE%$' + ImgName)
@@ -167,27 +170,23 @@ if __name__ == '__main__':
         # set numpy landmarks
         landmarks_string = json.loads(data_input)
         landmarks = np.array(landmarks_string)
-        # todo crop input
+        # crop
+        source = landmark_68_to_5(landmarks)
+        tform = trans.SimilarityTransform()                                                                                                                                                  
+        tform.estimate(source, reference)
+
         A_paths = os.path.join(TestImgPath, ImgName)
         Imgs = Image.open(A_paths).convert('RGB')
         img_width, img_height = Imgs.size
 
         data = obtain_inputs(Imgs, landmarks)
 
-        # TODO
-        # crop based on 5 point FFHQ template
-        # ref_points = np.load(template_path) / template_scale
-        # tform = trans.SimilarityTransform()
-        # tform.estimate(single_points, ref_points)
-        # tmp_face = trans.warp(img, tform.inverse, output_shape=align_out_size, order=3)
-
         model.set_input(data)
         try:
             model.test()
             visuals = model.get_current_visuals()
-            # save_crop(visuals,os.path.join(SaveRestorePath,ImgName))
-            image_numpy = get_image_from_tensor(visuals)
 
+            image_numpy = get_image_from_tensor(visuals)
             # crop back and resize
             image_pil = Image.fromarray(image_numpy)
             # resize to original
