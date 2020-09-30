@@ -155,28 +155,6 @@ if __name__ == '__main__':
     TestImgPath = opt.input_folder #% test image path
     opt.results_dir = opt.output_folder #save path
 
-    # print('\n###################### Now Running the X {} task ##############################'.format(UpScaleWhole))
-
-    #######################################################################
-    ###########Step 1: Crop and Align Face from the whole Image ###########
-    #######################################################################
-    # print('\n###############################################################################')
-    # print('####################### Step 1: Crop and Align Face ###########################')
-    # print('###############################################################################\n')
-    
-    # detector = dlib.cnn_face_detection_model_v1('./packages/mmod_human_face_detector.dat')
-    # sp = dlib.shape_predictor('./packages/shape_predictor_5_face_landmarks.dat')
-    # reference = np.load('./packages/FFHQ_template.npy') / 2
-    # SaveInputPath = os.path.join(ResultsDir,'Step0_Input')
-    # if not os.path.exists(SaveInputPath):
-    #     os.makedirs(SaveInputPath)
-    # SaveCropPath = os.path.join(ResultsDir,'Step1_CropImg')
-    # if not os.path.exists(SaveCropPath):
-    #     os.makedirs(SaveCropPath)
-
-    # SaveRestorePath = os.path.join(ResultsDir,'Step3_RestoreCropFace')# Only Face Results
-    # if not os.path.exists(SaveRestorePath):
-    #     os.makedirs(SaveRestorePath)
     model = create_model(opt)
     model.setup(opt)
     # test
@@ -222,18 +200,3 @@ if __name__ == '__main__':
             print(r'%ERROR%$Error in enhancing this image: {}'.format(str(e)))
 
             continue
-
-    # SaveFianlPath = os.path.join(ResultsDir,'Step4_FinalResults')
-    # if not os.path.exists(SaveFianlPath):
-    #     os.makedirs(SaveFianlPath)
-    # ImgPaths = make_dataset(SaveRestorePath)
-    # for i,ImgPath in enumerate(ImgPaths):
-    #     ImgName = os.path.split(ImgPath)[-1]
-    #     print('Final Restoring {}'.format(ImgName))
-    #     WholeInputPath = os.path.join(TestImgPath,ImgName)
-    #     FaceResultPath = os.path.join(SaveRestorePath, ImgName)
-    #     ParamPath = os.path.join(SaveParamPath, ImgName+'.npy')
-    #     SaveWholePath = os.path.join(SaveFianlPath, ImgName)
-    #     reverse_align(WholeInputPath, FaceResultPath, ParamPath, SaveWholePath, UpScaleWhole)
-
-    # print('\nAll results are saved in {} \n'.format(ResultsDir))
