@@ -17,6 +17,7 @@ from math import sqrt
 import random
 import os
 import math
+from pathlib import Path
 
 from sync_batchnorm import convert_model
 ####
@@ -358,11 +359,13 @@ class VGGFeat(torch.nn.Module):
     """
     Input: (B, C, H, W), RGB, [-1, 1]
     """
-    def __init__(self, weight_path='./weights/vgg19.pth'):
+    def __init__(self, weight_path='weights'):
         super().__init__()
         self.model = models.vgg19(pretrained=False)
         self.build_vgg_layers()
         
+        base_path = Path(__file__).parent.parent
+        weight_path = os.path.join(base_path, weight_path, 'vgg19.pth')
         self.model.load_state_dict(torch.load(weight_path))
 
         self.register_parameter("RGB_mean", nn.Parameter(torch.Tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)))
@@ -421,9 +424,11 @@ def AttentionBlock(in_channel):
     )
 
 class UNetDictFace(nn.Module):
-    def __init__(self, ngf=64, dictionary_path='./DictionaryCenter512'):
+    def __init__(self, ngf=64, dictionary_path='DictionaryCenter512'):
         super().__init__()
         
+        base_path = Path(__file__).parent.parent
+        dictionary_path = os.path.join(base_path, dictionary_path)
         self.part_sizes = np.array([80,80,50,110]) # size for 512
         self.feature_sizes = np.array([256,128,64,32])
         self.channel_sizes = np.array([128,256,512,512])

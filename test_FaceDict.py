@@ -9,29 +9,29 @@ import torchvision.transforms as transforms
 import torch
 import random
 import cv2
+import json
 import argparse
+from util import util
 from tqdm import tqdm
-from util import html
-from dfl.dfl_read import load_data
-import dlib
+# from util import html
 from skimage import transform as trans
 from skimage import io
-from data.image_folder import make_dataset
-    dets = detector(img, 1)
-    if len(dets) == 0:
-        return None
-    areas = []
-    if len(dets) > 1:
-        print('\t###### Warning: more than one face is detected. In this version, we only handle the largest one.')
-    for i in range(len(dets)):
-        area = (dets[i].rect.right()-dets[i].rect.left())*(dets[i].rect.bottom()-dets[i].rect.top())
-        areas.append(area)
-    ins = areas.index(max(areas))
-    shape = sp(img, dets[ins].rect) 
-    single_points = []
-    for i in range(5):
-        single_points.append([shape.part(i).x, shape.part(i).y])
-    return np.array(single_points) 
+# from data.image_folder import make_dataset
+#     dets = detector(img, 1)
+#     if len(dets) == 0:
+#         return None
+#     areas = []
+#     if len(dets) > 1:
+#         print('\t###### Warning: more than one face is detected. In this version, we only handle the largest one.')
+#     for i in range(len(dets)):
+#         area = (dets[i].rect.right()-dets[i].rect.left())*(dets[i].rect.bottom()-dets[i].rect.top())
+#         areas.append(area)
+#     ins = areas.index(max(areas))
+#     shape = sp(img, dets[ins].rect) 
+#     single_points = []
+#     for i in range(5):
+#         single_points.append([shape.part(i).x, shape.part(i).y])
+#     return np.array(single_points) 
 
 def align_and_save(img_path, save_path, save_input_path, save_param_path, upsample_scale=2):
     out_size = (512, 512) 
@@ -73,15 +73,21 @@ def reverse_align(input_path, face_path, param_path, save_path, upsample_scale=2
     merge_img = inv_soft_mask * inv_crop_img_removeborder + (1 - inv_soft_mask) * upsample_img
     io.imsave(save_path, merge_img.astype(np.uint8))
 
-###########################################################################
-################ functions of preparing the test images ###################
-###########################################################################
 def AddUpSample(img):
     return img.resize((512, 512), Image.BICUBIC)
 
+# returns numpy image
+def get_image_from_tensor(visuals):
+    im_data = visuals['real_A']
+    im = util.tensor2im(im_data)
+    return im
 
-def get_part_location(dfl_image, image):
-    Landmarks = dfl_image.get_landmarks()
+def landmark_68_to_5(landmarks):
+    lan_5 = np.array(landmarks[33], landmarks[36], landmarks[39], landmarks[42], landmarks[45])
+    return lan_5
+
+def get_part_location(landmarks, image):
+    Landmarks = landmarks
 
     width, height = image.size
     if width != 512 or height != 512:
@@ -115,14 +121,12 @@ def get_part_location(dfl_image, image):
         return 0
     return torch.from_numpy(Location_LE).unsqueeze(0), torch.from_numpy(Location_RE).unsqueeze(0), torch.from_numpy(Location_NO).unsqueeze(0), torch.from_numpy(Location_MO).unsqueeze(0)
 
-def obtain_inputs(img_path, img_name, Type):
-    A_paths = os.path.join(img_path,img_name)
-    Imgs = Image.open(A_paths).convert('RGB')
-    dfl_image = load_data(A_paths)
-
-    Part_locations = get_part_location(dfl_image, Imgs)
+def obtain_inputs(img, landmarks):
+    Part_locations = get_part_location(landmarks, img)
     if Part_locations == 0:
         return 0
+
+    A = img
     C = A
     A = AddUpSample(A)
     A = transforms.ToTensor()(A) 
@@ -131,6 +135,7 @@ def obtain_inputs(img_path, img_name, Type):
     C = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(C) #
     return {'A':A.unsqueeze(0), 'C':C.unsqueeze(0), 'A_paths': A_paths,'Part_locations': Part_locations}
     
+def 
 
 
 if __name__ == '__main__':  
@@ -150,90 +155,28 @@ if __name__ == '__main__':
     TestImgPath = opt.input_folder #% test image path
     opt.results_dir = opt.output_folder #save path
 
-    print('\n###################### Now Running the X {} task ##############################'.format(UpScaleWhole))
+    # print('\n###################### Now Running the X {} task ##############################'.format(UpScaleWhole))
 
     #######################################################################
     ###########Step 1: Crop and Align Face from the whole Image ###########
     #######################################################################
-    print('\n###############################################################################')
-    print('####################### Step 1: Crop and Align Face ###########################')
-    print('###############################################################################\n')
+    # print('\n###############################################################################')
+    # print('####################### Step 1: Crop and Align Face ###########################')
+    # print('###############################################################################\n')
     
-    detector = dlib.cnn_face_detection_model_v1('./packages/mmod_human_face_detector.dat')
-    sp = dlib.shape_predictor('./packages/shape_predictor_5_face_landmarks.dat')
-    reference = np.load('./packages/FFHQ_template.npy') / 2
-    SaveInputPath = os.path.join(ResultsDir,'Step0_Input')
-    if not os.path.exists(SaveInputPath):
-        os.makedirs(SaveInputPath)
-    SaveCropPath = os.path.join(ResultsDir,'Step1_CropImg')
-    if not os.path.exists(SaveCropPath):
-        os.makedirs(SaveCropPath)
+    # detector = dlib.cnn_face_detection_model_v1('./packages/mmod_human_face_detector.dat')
+    # sp = dlib.shape_predictor('./packages/shape_predictor_5_face_landmarks.dat')
+    # reference = np.load('./packages/FFHQ_template.npy') / 2
+    # SaveInputPath = os.path.join(ResultsDir,'Step0_Input')
+    # if not os.path.exists(SaveInputPath):
+    #     os.makedirs(SaveInputPath)
+    # SaveCropPath = os.path.join(ResultsDir,'Step1_CropImg')
+    # if not os.path.exists(SaveCropPath):
+    #     os.makedirs(SaveCropPath)
 
-    SaveParamPath = os.path.join(ResultsDir,'Step1_AffineParam') #save the inverse affine parameters
-    if not os.path.exists(SaveParamPath):
-        os.makedirs(SaveParamPath)
-
-    ImgPaths = make_dataset(TestImgPath)
-    for i, ImgPath in enumerate(ImgPaths):
-        ImgName = os.path.split(ImgPath)[-1]
-        print('Crop and Align {} image'.format(ImgName))
-        SavePath = os.path.join(SaveCropPath,ImgName)
-        SaveInput = os.path.join(SaveInputPath,ImgName)
-        SaveParam = os.path.join(SaveParamPath, ImgName+'.npy')
-        align_and_save(ImgPath, SavePath, SaveInput, SaveParam, UpScaleWhole)
-
-    #######################################################################
-    ####### Step 2: Face Landmark Detection from the Cropped Image ########
-    #######################################################################
-    print('\n###############################################################################')
-    print('####################### Step 2: Face Landmark Detection #######################')
-    print('###############################################################################\n')
-    
-    SaveLandmarkPath = os.path.join(ResultsDir,'Step2_Landmarks')
-    if len(opt.gpu_ids) > 0:
-        dev = 'cuda:{}'.format(opt.gpu_ids[0])
-    else:
-        dev = 'cpu'
-    FD = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D,device=dev, flip_input=False)
-    if not os.path.exists(SaveLandmarkPath):
-        os.makedirs(SaveLandmarkPath)
-    ImgPaths = make_dataset(SaveCropPath)
-    for i,ImgPath in enumerate(ImgPaths):
-        ImgName = os.path.split(ImgPath)[-1]
-        print('Detecting {}'.format(ImgName))
-        Img = io.imread(ImgPath)
-        try:
-            PredsAll = FD.get_landmarks(Img)
-        except:
-            print('\t################ Error in face detection, continue...')
-            continue
-        if PredsAll is None:
-            print('\t################ No face, continue...')
-            continue
-        ins = 0
-        if len(PredsAll)!=1:
-            hights = []
-            for l in PredsAll:
-                hights.append(l[8,1] - l[19,1])
-            ins = hights.index(max(hights))
-            # print('\t################ Warning: Detected too many face, only handle the largest one...')
-            # continue
-        preds = PredsAll[ins]
-        AddLength = np.sqrt(np.sum(np.power(preds[27][0:2]-preds[33][0:2],2)))
-        SaveName = ImgName+'.txt'
-        np.savetxt(os.path.join(SaveLandmarkPath,SaveName),preds[:,0:2],fmt='%.3f')
-
-    #######################################################################
-    ####################### Step 3: Face Restoration ######################
-    #######################################################################
-
-    print('\n###############################################################################')
-    print('####################### Step 3: Face Restoration ##############################')
-    print('###############################################################################\n')
-
-    SaveRestorePath = os.path.join(ResultsDir,'Step3_RestoreCropFace')# Only Face Results
-    if not os.path.exists(SaveRestorePath):
-        os.makedirs(SaveRestorePath)
+    # SaveRestorePath = os.path.join(ResultsDir,'Step3_RestoreCropFace')# Only Face Results
+    # if not os.path.exists(SaveRestorePath):
+    #     os.makedirs(SaveRestorePath)
     model = create_model(opt)
     model.setup(opt)
     # test
@@ -242,40 +185,55 @@ if __name__ == '__main__':
 
     for i, ImgName in enumerate(tqdm(ImgNames)):
         torch.cuda.empty_cache()
-        data = obtain_inputs(TestImgPath, ImgName, 'real')
-        if data == 0:
-            print ('Skipping ' + ImgName + ' data not found');
+        data_input = input('%REQFILE%$' + ImgName)
+        if len(data_input) < 2:
             continue
+
+        # set numpy landmarks
+        landmarks_string = json.loads(data_input)
+        landmarks = np.array(landmarks_string)
+        # todo crop input
+        A_paths = os.path.join(TestImgPath, ImgName)
+        Imgs = Image.open(A_paths).convert('RGB')
+        img_width, img_height = Imgs.size
+
+        data = obtain_inputs(Imgs, landmarks)
+
+        # TODO
+        # crop based on 5 point FFHQ template
+        # ref_points = np.load(template_path) / template_scale
+        # tform = trans.SimilarityTransform()
+        # tform.estimate(single_points, ref_points)
+        # tmp_face = trans.warp(img, tform.inverse, output_shape=align_out_size, order=3)
+
         model.set_input(data)
         try:
             model.test()
             visuals = model.get_current_visuals()
-            save_crop(visuals,os.path.join(SaveRestorePath,ImgName))
+            # save_crop(visuals,os.path.join(SaveRestorePath,ImgName))
+            image_numpy = get_image_from_tensor(visuals)
+
+            # crop back and resize
+            image_pil = Image.fromarray(image_numpy)
+            # resize to original
+            image_pil = image_pil.resize((img_width, img_height), Image.ANTIALIAS)
+            image_pil.save(os.path.join(opt.results_dir, ImgName))
         except Exception as e:
-            print('\t################ Error in enhancing this image: {}'.format(str(e)))
-            print('\t################ continue...')
+            print(r'%ERROR%$Error in enhancing this image: {}'.format(str(e)))
+
             continue
 
-    #######################################################################
-    ############ Step 4: Paste the Results to the Input Image #############
-    #######################################################################
-    
-    print('\n###############################################################################')
-    print('############### Step 4: Paste the Restored Face to the Input Image ############')
-    print('###############################################################################\n')
+    # SaveFianlPath = os.path.join(ResultsDir,'Step4_FinalResults')
+    # if not os.path.exists(SaveFianlPath):
+    #     os.makedirs(SaveFianlPath)
+    # ImgPaths = make_dataset(SaveRestorePath)
+    # for i,ImgPath in enumerate(ImgPaths):
+    #     ImgName = os.path.split(ImgPath)[-1]
+    #     print('Final Restoring {}'.format(ImgName))
+    #     WholeInputPath = os.path.join(TestImgPath,ImgName)
+    #     FaceResultPath = os.path.join(SaveRestorePath, ImgName)
+    #     ParamPath = os.path.join(SaveParamPath, ImgName+'.npy')
+    #     SaveWholePath = os.path.join(SaveFianlPath, ImgName)
+    #     reverse_align(WholeInputPath, FaceResultPath, ParamPath, SaveWholePath, UpScaleWhole)
 
-    SaveFianlPath = os.path.join(ResultsDir,'Step4_FinalResults')
-    if not os.path.exists(SaveFianlPath):
-        os.makedirs(SaveFianlPath)
-    ImgPaths = make_dataset(SaveRestorePath)
-    for i,ImgPath in enumerate(ImgPaths):
-        ImgName = os.path.split(ImgPath)[-1]
-        print('Final Restoring {}'.format(ImgName))
-        WholeInputPath = os.path.join(TestImgPath,ImgName)
-        FaceResultPath = os.path.join(SaveRestorePath, ImgName)
-        ParamPath = os.path.join(SaveParamPath, ImgName+'.npy')
-        SaveWholePath = os.path.join(SaveFianlPath, ImgName)
-        reverse_align(WholeInputPath, FaceResultPath, ParamPath, SaveWholePath, UpScaleWhole)
-
-    print('\nAll results are saved in {} \n'.format(ResultsDir))
-    
+    # print('\nAll results are saved in {} \n'.format(ResultsDir))
