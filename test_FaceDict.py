@@ -16,22 +16,8 @@ from tqdm import tqdm
 # from util import html
 from skimage import transform as trans
 from skimage import io
-# from data.image_folder import make_dataset
-#     dets = detector(img, 1)
-#     if len(dets) == 0:
-#         return None
-#     areas = []
-#     if len(dets) > 1:
-#         print('\t###### Warning: more than one face is detected. In this version, we only handle the largest one.')
-#     for i in range(len(dets)):
-#         area = (dets[i].rect.right()-dets[i].rect.left())*(dets[i].rect.bottom()-dets[i].rect.top())
-#         areas.append(area)
-#     ins = areas.index(max(areas))
-#     shape = sp(img, dets[ins].rect) 
-#     single_points = []
-#     for i in range(5):
-#         single_points.append([shape.part(i).x, shape.part(i).y])
-#     return np.array(single_points) 
+
+import matplotlib.pyplot as plt
 
 def align_and_save(img_path, save_path, save_input_path, save_param_path, upsample_scale=2):
     out_size = (512, 512) 
@@ -83,7 +69,7 @@ def get_image_from_tensor(visuals):
     return im
 
 def landmark_68_to_5(landmarks):
-    lan_5 = np.array([landmarks[33], landmarks[36], landmarks[39], landmarks[42], landmarks[45]])
+    lan_5 = np.array([landmarks[45], landmarks[42], landmarks[36], landmarks[39], landmarks[34]])
     return lan_5
 
 def get_part_location(landmarks, image):
@@ -170,16 +156,23 @@ if __name__ == '__main__':
         # set numpy landmarks
         landmarks_string = json.loads(data_input)
         landmarks = np.array(landmarks_string)
-        # crop
-        source = landmark_68_to_5(landmarks)
-        tform = trans.SimilarityTransform()                                                                                                                                                  
-        tform.estimate(source, reference)
 
         A_paths = os.path.join(TestImgPath, ImgName)
         Imgs = Image.open(A_paths).convert('RGB')
         img_width, img_height = Imgs.size
 
-        data = obtain_inputs(Imgs, landmarks)
+        # crop
+        source = landmark_68_to_5(landmarks)
+        tform = trans.SimilarityTransform()                                                                                                                                                  
+        tform.estimate(source, reference)
+        M = tform.params[0:2,:]
+        array_img = np.array(Imgs)
+        crop_img = cv2.warpAffine(array_img, M, out_size)
+        transformed_points = tform(landmarks)
+
+        image_pil = Image.fromarray(crop_img)
+
+        data = obtain_inputs(image_pil, transformed_points)
 
         model.set_input(data)
         try:
@@ -188,9 +181,9 @@ if __name__ == '__main__':
 
             image_numpy = get_image_from_tensor(visuals)
             # crop back and resize
+            image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC )
+
             image_pil = Image.fromarray(image_numpy)
-            # resize to original
-            image_pil = image_pil.resize((img_width, img_height), Image.ANTIALIAS)
             image_pil.save(os.path.join(opt.results_dir, ImgName))
         except Exception as e:
             print(r'%ERROR%$Error in enhancing this image: {}'.format(str(e)))
