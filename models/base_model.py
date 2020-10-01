@@ -2,7 +2,7 @@ import os
 import torch
 from collections import OrderedDict
 from . import networks
-
+from pathlib import Path
 
 class BaseModel():
 
@@ -119,7 +119,8 @@ class BaseModel():
         for name in self.model_names:
             if isinstance(name, str):
                 load_filename = '%s_net_%s.pth' % (which_epoch, name)
-                load_path = os.path.join(self.save_dir, load_filename)
+                base_path = Path(__file__).parent.parent
+                load_path = os.path.join(base_path, self.save_dir, load_filename)
                 net = getattr(self, 'net' + name)
                 if isinstance(net, torch.nn.DataParallel):
                     net = net.module
