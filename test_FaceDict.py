@@ -16,8 +16,7 @@ from tqdm import tqdm
 # from util import html
 from skimage import transform as trans
 from skimage import io
-
-import matplotlib.pyplot as plt
+from pathlib import Path
 
 def align_and_save(img_path, save_path, save_input_path, save_param_path, upsample_scale=2):
     out_size = (512, 512) 
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     ImgNames = os.listdir(TestImgPath)
     ImgNames.sort()
 
-    reference = np.load('./packages/FFHQ_template.npy') / 2
+    reference = np.load(os.path.join(Path(__file__).parent, 'packages', 'FFHQ_template.npy') / 2
     out_size = (512, 512) 
 
     for i, ImgName in enumerate(tqdm(ImgNames)):
