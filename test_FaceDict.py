@@ -183,7 +183,7 @@ if __name__ == '__main__':
             image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC )
 
             image_pil = Image.fromarray(image_numpy)
-            image_pil.save(os.path.join(opt.results_dir, ImgName))
+            image_pil.save(os.path.join(opt.results_dir, ImgName), quality='maximum')
         except Exception as e:
             print(r'%ERROR%$Error in enhancing this image: {}'.format(str(e)))
 
