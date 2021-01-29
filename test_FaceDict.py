@@ -58,6 +58,35 @@ def reverse_align(input_path, face_path, param_path, save_path, upsample_scale=2
     merge_img = inv_soft_mask * inv_crop_img_removeborder + (1 - inv_soft_mask) * upsample_img
     io.imsave(save_path, merge_img.astype(np.uint8))
 
+def reverse_align2(oImage, pImage, M):
+    # Setup Variables
+    imageSize = (pImage.shape[0],pImage.shape[1])
+    erode1Kernel = (4,4)
+
+    # Generate mask (of ones)
+    mask = np.ones(pImage.shape, dtype=np.float32)
+
+    # Invert Mask and prediction Image
+    inv_mask = cv2.warpAffine(mask, M, imageSize, flags=cv2.WARP_INVERSE_MAP)
+    inv_pImage = cv2.warpAffine(pImage, M, imageSize, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC)
+
+    # Erode Mask (Remove Black Borders)
+    inv_erode_mask = cv2.erode(inv_mask, np.ones(erode1Kernel, np.uint8))
+    inv_erode_pImage = inv_erode_mask * inv_pImage
+
+    # Build Blend Mask Kernel (Total Face Area )
+    blendDist = (int((np.sum(inv_erode_mask)//3) ** 0.5) // 20) * 2
+    bKernelErode = (blendDist, blendDist)
+    bKernelSmooth = (blendDist + 1, blendDist + 1)
+
+    # Blend Mask (This is a simplification of the above)
+    blend_mask = cv2.GaussianBlur(cv2.erode(inv_erode_mask, np.ones(bKernelErode, np.uint8)), bKernelSmooth,0)
+
+    # Merge Images
+    mImage = blend_mask * inv_erode_pImage + (1 - blend_mask) * oImage
+
+    return mImage.astype(np.uint8)
+
 def AddUpSample(img):
     return img.resize((512, 512), Image.BICUBIC)
 
@@ -180,7 +209,8 @@ if __name__ == '__main__':
 
             image_numpy = get_image_from_tensor(visuals)
             # crop back and resize
-            image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC )
+            # image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC)
+            image_numpy = reverse_align2(array_img, image_numpy, M)
 
             image_pil = Image.fromarray(image_numpy)
             image_pil.save(os.path.join(opt.results_dir, ImgName), quality='maximum')
