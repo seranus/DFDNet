@@ -58,6 +58,61 @@ def reverse_align(input_path, face_path, param_path, save_path, upsample_scale=2
     merge_img = inv_soft_mask * inv_crop_img_removeborder + (1 - inv_soft_mask) * upsample_img
     io.imsave(save_path, merge_img.astype(np.uint8))
 
+def get_matrix_scaling(matrix):
+    """ Given a matrix, return the cv2 Interpolation method and inverse interpolation method for
+    applying the matrix on an image.
+    Parameters
+    ----------
+    matrix: :class:`numpy.ndarray`
+        The transform matrix to return the interpolator for
+    Returns
+    -------
+    tuple
+        The interpolator and inverse interpolator for the given matrix. This will be (Cubic, Area)
+        for an upscale matrix and (Area, Cubic) for a downscale matrix
+    """
+    x_scale = np.sqrt(matrix[0, 0] * matrix[0, 0] + matrix[0, 1] * matrix[0, 1])
+    y_scale = (matrix[0, 0] * matrix[1, 1] - matrix[0, 1] * matrix[1, 0]) / x_scale
+    avg_scale = (x_scale + y_scale) * 0.5
+    if avg_scale >= 1.:
+        interpolators = cv2.INTER_CUBIC, cv2.INTER_AREA
+    else:
+        interpolators = cv2.INTER_AREA, cv2.INTER_CUBIC
+    
+    return interpolators
+
+def reverse_align2(oImage, pImage, M):
+    # Setup Variables
+    imageSize = (pImage.shape[0],pImage.shape[1])
+    erode1Kernel = (4,4)
+
+    # Generate mask (of ones)
+    mask = np.ones(pImage.shape, dtype=np.float32)
+
+    # Invert Transformation Matrix
+    inv_M = cv2.invertAffineTransform(M)
+
+    # Invert Mask and prediction Image
+    inv_mask = cv2.warpAffine(mask, inv_M, imageSize)
+    inv_pImage = cv2.warpAffine(pImage, inv_M, imageSize, flags=get_matrix_scaling(inv_M)[0]) 
+
+    # Erode Mask (Remove Black Borders)
+    inv_erode_mask = cv2.erode(inv_mask, np.ones(erode1Kernel, np.uint8))
+    inv_erode_pImage = inv_erode_mask * inv_pImage
+
+    # Build Blend Mask Kernel (Total Face Area )
+    blendDist = (int((np.sum(inv_erode_mask)//3) ** 0.5) // 20) * 2
+    bKernelErode = (blendDist, blendDist)
+    bKernelSmooth = (blendDist + 1, blendDist + 1)
+
+    # Blend Mask (This is a simplification of the above)
+    blend_mask = cv2.GaussianBlur(cv2.erode(inv_erode_mask, np.ones(bKernelErode, np.uint8)), bKernelSmooth,0)
+
+    # Merge Images
+    mImage = blend_mask * inv_erode_pImage + (1 - blend_mask) * oImage
+
+    return mImage.astype(np.uint8)
+
 def AddUpSample(img):
     return img.resize((512, 512), Image.BICUBIC)
 
@@ -68,7 +123,7 @@ def get_image_from_tensor(visuals):
     return im
 
 def landmark_68_to_5(landmarks):
-    lan_5 = np.array([landmarks[45], landmarks[42], landmarks[36], landmarks[39], landmarks[34]])
+    lan_5 = np.array([landmarks[45], landmarks[42], landmarks[36], landmarks[39], landmarks[33]])
     return lan_5
 
 def get_part_location(landmarks, image):
@@ -180,7 +235,8 @@ if __name__ == '__main__':
 
             image_numpy = get_image_from_tensor(visuals)
             # crop back and resize
-            image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC )
+            # image_numpy = cv2.warpAffine(image_numpy, M, Imgs.size, array_img, flags=cv2.WARP_INVERSE_MAP | cv2.INTER_CUBIC)
+            image_numpy = reverse_align2(array_img, image_numpy, M)
 
             image_pil = Image.fromarray(image_numpy)
             image_pil.save(os.path.join(opt.results_dir, ImgName), quality='maximum')
