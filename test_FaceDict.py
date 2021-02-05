@@ -83,7 +83,7 @@ def get_matrix_scaling(matrix):
 
 def reverse_align2(oImage, pImage, M):
     # Setup Variables
-    imageSize = (pImage.shape[0],pImage.shape[1])
+    imageSize = (oImage.shape[0],oImage.shape[1])
     erode1Kernel = (4,4)
 
     # Generate mask (of ones)
